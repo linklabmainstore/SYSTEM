@@ -21,6 +21,9 @@ redisClient.connect().then(() => {
   app.post('/purchase', async (req, res) => {
     // Recebe o nome da loja, o nome do produto e o ID do vendor
     const { user, storeName, product, vendorKey } = req.body;
+    
+    // Loga os dados recebidos para debug
+    console.log(`Received purchase: user=${user}, storeName=${storeName}, product=${product}, vendorKey=${vendorKey}`);
 
     if (!user || !storeName || !product || !vendorKey) {
       return res.status(400).send('Missing required fields: user, storeName, product, or vendorKey');
@@ -32,7 +35,9 @@ redisClient.connect().then(() => {
     try {
       // Adiciona o valor à lista (ou cria a lista se ela não existir)
       await redisClient.lPush(key, JSON.stringify(value));
-      res.status(200).send('Purchase registered successfully');
+      console.log(`Purchase saved to Redis for user: ${user}`);
+      // Responde com a mensagem de confirmação
+      res.status(200).send('compra salva no sistema de redelivery');
     } catch (error) {
       console.error('Error processing purchase:', error);
       res.status(500).send('Internal Server Error');
@@ -41,7 +46,7 @@ redisClient.connect().then(() => {
 
   // Rota para buscar todas as compras de um usuário (sem filtro por loja)
   app.get('/purchases', async (req, res) => {
-    const { user } = req.query; // Removemos o storeName da requisição
+    const { user } = req.query;
 
     if (!user) {
       return res.status(400).send('Missing required parameter: user');
@@ -50,12 +55,12 @@ redisClient.connect().then(() => {
     try {
       const key = `purchases:${user}`;
       const allPurchases = await redisClient.lRange(key, 0, -1);
+      console.log(`Found ${allPurchases.length} purchases for user: ${user}`);
 
       if (allPurchases.length === 0) {
         return res.status(200).send('');
       }
 
-      // O filtro por loja foi removido, agora retornamos todas as compras.
       const formattedResponse = allPurchases.map(purchase => {
         const parsed = JSON.parse(purchase);
         return `${parsed.product}|${parsed.vendorKey}`;
