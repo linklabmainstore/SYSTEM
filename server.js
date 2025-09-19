@@ -6,6 +6,11 @@ const { createClient } = require('redis');
 const app = express();
 app.use(bodyParser.json());
 
+// Rota de teste para verificar se o servidor está online
+app.get('/', (req, res) => {
+  res.status(200).send('System is online!');
+});
+
 // Conecta ao Redis usando a variável de ambiente do Render
 const redisClient = createClient({
   url: process.env.REDIS_URL
@@ -19,8 +24,29 @@ redisClient.connect().then(() => {
 
   // Rota para registrar uma nova compra
   app.post('/purchase', async (req, res) => {
-    // Retornamos uma mensagem de texto simples para verificar se o LSL a recebe.
-    res.status(200).send('compra salva no sistema de redelivery');
+    // Recebe o nome da loja, o nome do produto e o ID do vendor
+    const { user, storeName, product, vendorKey } = req.body;
+    
+    // Loga os dados recebidos para debug
+    console.log(`Received purchase: user=${user}, storeName=${storeName}, product=${product}, vendorKey=${vendorKey}`);
+
+    if (!user || !storeName || !product || !vendorKey) {
+      return res.status(400).send('Missing required fields: user, storeName, product, or vendorKey');
+    }
+
+    const key = `purchases:${user}`;
+    const value = { storeName, product, vendorKey, timestamp: Date.now() };
+
+    try {
+      // Adiciona o valor à lista (ou cria a lista se ela não existir)
+      await redisClient.lPush(key, JSON.stringify(value));
+      console.log(`Purchase saved to Redis for user: ${user}`);
+      // Responde com uma mensagem de confirmação para o LSL
+      res.status(200).send('ok');
+    } catch (error) {
+      console.error('Error processing purchase:', error);
+      res.status(500).send('Internal Server Error');
+    }
   });
 
   // Rota para buscar todas as compras de um usuário (sem filtro por loja)
