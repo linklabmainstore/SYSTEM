@@ -1,0 +1,82 @@
+// server.js
+const express = require('express');
+const bodyParser = require('body-parser');
+const { createClient } = require('redis');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Conecta ao Redis usando a variável de ambiente do Render
+const redisClient = createClient({
+  url: process.env.REDIS_URL
+});
+
+redisClient.on('error', err => console.log('Redis Client Error', err));
+
+// Espera o cliente do Redis estar pronto antes de iniciar o servidor
+redisClient.connect().then(() => {
+  console.log('Connected to Redis');
+
+  // Rota para registrar uma nova compra
+  app.post('/purchase', async (req, res) => {
+    const { user, product, vendor } = req.body;
+
+    if (!user || !product || !vendor) {
+      return res.status(400).send('Missing required fields: user, product, or vendor');
+    }
+
+    const key = `purchases:${user}`;
+    const value = { product, vendor, timestamp: Date.now() };
+
+    try {
+      // Adiciona o valor à lista (ou cria a lista se ela não existir)
+      await redisClient.lPush(key, JSON.stringify(value));
+      res.status(200).send('Purchase registered successfully');
+    } catch (error) {
+      console.error('Error processing purchase:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+  // Rota para buscar compras de um usuário em uma loja específica
+  app.get('/purchases', async (req, res) => {
+    const { user, store } = req.query;
+
+    if (!user || !store) {
+      return res.status(400).send('Missing required parameters: user or store');
+    }
+
+    try {
+      const key = `purchases:${user}`;
+      const allPurchases = await redisClient.lRange(key, 0, -1);
+
+      if (allPurchases.length === 0) {
+        return res.status(200).send('');
+      }
+
+      // Filtra as compras para a loja específica
+      const filteredPurchases = allPurchases.filter(purchase => {
+        const parsed = JSON.parse(purchase);
+        return parsed.vendor === store;
+      });
+
+      // Formata a resposta para o LSL: produto|chave|produto|chave...
+      const formattedResponse = filteredPurchases.map(purchase => {
+        const parsed = JSON.parse(purchase);
+        return `${parsed.product}|${parsed.vendor}`;
+      }).join('|');
+      
+      res.status(200).send(formattedResponse);
+
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+  const PORT = process.env.PORT || 10000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+
+}).catch(err => console.error('Failed to connect to Redis', err));
