@@ -19,14 +19,15 @@ redisClient.connect().then(() => {
 
   // Rota para registrar uma nova compra
   app.post('/purchase', async (req, res) => {
-    const { user, product, vendor } = req.body;
+    // Recebe o nome da loja, o nome do produto e o ID do vendor
+    const { user, storeName, product, vendorKey } = req.body;
 
-    if (!user || !product || !vendor) {
-      return res.status(400).send('Missing required fields: user, product, or vendor');
+    if (!user || !storeName || !product || !vendorKey) {
+      return res.status(400).send('Missing required fields: user, storeName, product, or vendorKey');
     }
 
     const key = `purchases:${user}`;
-    const value = { product, vendor, timestamp: Date.now() };
+    const value = { storeName, product, vendorKey, timestamp: Date.now() };
 
     try {
       // Adiciona o valor à lista (ou cria a lista se ela não existir)
@@ -40,10 +41,10 @@ redisClient.connect().then(() => {
 
   // Rota para buscar compras de um usuário em uma loja específica
   app.get('/purchases', async (req, res) => {
-    const { user, store } = req.query;
+    const { user, storeName } = req.query;
 
-    if (!user || !store) {
-      return res.status(400).send('Missing required parameters: user or store');
+    if (!user || !storeName) {
+      return res.status(400).send('Missing required parameters: user or storeName');
     }
 
     try {
@@ -57,13 +58,13 @@ redisClient.connect().then(() => {
       // Filtra as compras para a loja específica
       const filteredPurchases = allPurchases.filter(purchase => {
         const parsed = JSON.parse(purchase);
-        return parsed.vendor === store;
+        return parsed.storeName === storeName;
       });
 
       // Formata a resposta para o LSL: produto|chave|produto|chave...
       const formattedResponse = filteredPurchases.map(purchase => {
         const parsed = JSON.parse(purchase);
-        return `${parsed.product}|${parsed.vendor}`;
+        return `${parsed.product}|${parsed.vendorKey}`;
       }).join('|');
       
       res.status(200).send(formattedResponse);
