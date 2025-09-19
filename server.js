@@ -19,29 +19,8 @@ redisClient.connect().then(() => {
 
   // Rota para registrar uma nova compra
   app.post('/purchase', async (req, res) => {
-    // Recebe o nome da loja, o nome do produto e o ID do vendor
-    const { user, storeName, product, vendorKey } = req.body;
-    
-    // Loga os dados recebidos para debug
-    console.log(`Received purchase: user=${user}, storeName=${storeName}, product=${product}, vendorKey=${vendorKey}`);
-
-    if (!user || !storeName || !product || !vendorKey) {
-      return res.status(400).send('Missing required fields: user, storeName, product, or vendorKey');
-    }
-
-    const key = `purchases:${user}`;
-    const value = { storeName, product, vendorKey, timestamp: Date.now() };
-
-    try {
-      // Adiciona o valor à lista (ou cria a lista se ela não existir)
-      await redisClient.lPush(key, JSON.stringify(value));
-      console.log(`Purchase saved to Redis for user: ${user}`);
-      // Responde com a mensagem de confirmação
-      res.status(200).send('compra salva no sistema de redelivery');
-    } catch (error) {
-      console.error('Error processing purchase:', error);
-      res.status(500).send('Internal Server Error');
-    }
+    // Retornamos uma mensagem de texto simples para verificar se o LSL a recebe.
+    res.status(200).send('compra salva no sistema de redelivery');
   });
 
   // Rota para buscar todas as compras de um usuário (sem filtro por loja)
