@@ -39,12 +39,12 @@ redisClient.connect().then(() => {
     }
   });
 
-  // Rota para buscar compras de um usuário em uma loja específica
+  // Rota para buscar todas as compras de um usuário (sem filtro por loja)
   app.get('/purchases', async (req, res) => {
-    const { user, storeName } = req.query;
+    const { user } = req.query; // Removemos o storeName da requisição
 
-    if (!user || !storeName) {
-      return res.status(400).send('Missing required parameters: user or storeName');
+    if (!user) {
+      return res.status(400).send('Missing required parameter: user');
     }
 
     try {
@@ -55,14 +55,8 @@ redisClient.connect().then(() => {
         return res.status(200).send('');
       }
 
-      // Filtra as compras para a loja específica
-      const filteredPurchases = allPurchases.filter(purchase => {
-        const parsed = JSON.parse(purchase);
-        return parsed.storeName === storeName;
-      });
-
-      // Formata a resposta para o LSL: produto|chave|produto|chave...
-      const formattedResponse = filteredPurchases.map(purchase => {
+      // O filtro por loja foi removido, agora retornamos todas as compras.
+      const formattedResponse = allPurchases.map(purchase => {
         const parsed = JSON.parse(purchase);
         return `${parsed.product}|${parsed.vendorKey}`;
       }).join('|');
