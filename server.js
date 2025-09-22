@@ -54,7 +54,7 @@ app.post('/purchase', verifyApiKey, async (req, res) => {
             [buyerUUID, product, vendorKey]
         );
 
-        console.log(`✅ Compra registrada: ${buyerUUID} -> ${product} (vendor: ${vendorKey})`);
+        console.log("✅ Compra registrada: " + buyerUUID + " -> " + product + " (vendor: " + vendorKey + ")");
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -76,17 +76,16 @@ app.post('/check-duplicate', verifyApiKey, async (req, res) => {
         );
 
         if (result.rows.length > 0) {
-            console.log(`⚠ Compra duplicada: ${giver} -> ${receiver} (${product})`);
+            console.log("⚠ Compra duplicada: " + giver + " -> " + receiver + " (" + product + ")");
             return res.json({ duplicate: true });
         }
 
-        // Se não duplicado, adiciona
         await pool.query(
             'INSERT INTO purchases(buyer_uuid, product, vendor_key) VALUES($1, $2, $3)',
             [receiver, product, vendorKey]
         );
 
-        console.log(`✅ Compra permitida: ${giver} -> ${receiver} (${product})`);
+        console.log("✅ Compra permitida: " + giver + " -> " + receiver + " (" + product + ")");
         res.json({ duplicate: false });
     } catch (err) {
         console.error(err);
@@ -103,10 +102,8 @@ app.get('/purchases/:avatarUUID', verifyApiKey, async (req, res) => {
             [avatarUUID]
         );
 
-        // Transforma em lista simples: [product1, vendorKey1, product2, vendorKey2, ...]
         const body = result.rows.map(r => r.product + "|" + r.vendor_key).join(';');
-
-        res.json(body);
+        res.json({ purchases: body });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Internal server error" });
@@ -115,5 +112,5 @@ app.get('/purchases/:avatarUUID', verifyApiKey, async (req, res) => {
 
 // Inicia servidor
 app.listen(PORT, () => {
-    console.log(`🚀 Redelivery Master backend rodando na porta ${PORT}`);
+    console.log("🚀 Redelivery Master backend rodando na porta " + PORT);
 });
