@@ -40,7 +40,7 @@ const result = await pool.query(
 'SELECT product, vendor FROM purchases WHERE avatar = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
 [avatar, per, offset]
 );
-const body = result.rows.map(r => `${r.product}|${r.vendor}`).join(';');
+const body = result.rows.map(r => r.product + "|" + r.vendor).join(';');
 res.type('text/plain').send(body);
 } catch (e) {
 console.error(e);
