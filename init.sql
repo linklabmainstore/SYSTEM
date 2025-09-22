@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS purchases (
+id SERIAL PRIMARY KEY,
+avatar TEXT NOT NULL,
+product TEXT NOT NULL,
+vendor TEXT NOT NULL,
+created_at TIMESTAMP DEFAULT NOW()
+);
